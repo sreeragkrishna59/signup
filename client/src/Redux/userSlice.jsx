@@ -16,4 +16,5 @@ state.loginData=action.payload
 })
 
 export const {storeData,removeDatass}=loginDataStore.actions
-export default loginDataStore.reducer
+export default loginDataStore.reducer  
+

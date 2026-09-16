@@ -1,68 +1,107 @@
 import { useEffect, useState } from "react";
-import { getHome } from "./api";
+import { deleteUser, getHome, updateUser } from "./api";
 import { useDispatch, useSelector } from "react-redux";
 import { removeDatass } from "../Redux/userSlice";
-
-
 const Home = () => {
-
-
   const dispatch=useDispatch()
-
     let loginInfo=useSelector((state)=>state.loginInfo.loginData)
-  console.log("logon info in app page",loginInfo);
-
+  console.log("first check .............",loginInfo);
 let userId=loginInfo?.userId
-  
-
+let token=loginInfo?.token
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const [user, setUser] = useState();
+const [user,setUser]=useState({
+  name:undefined,
+  age:undefined,
+  email:undefined,
+  mobile:undefined,
+address:undefined,
+image:undefined
+})
+//count the delete section
+  const [count, setCount] = useState(null);
+  const [isBlurred, setIsBlurred] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 useEffect(() => {
   if (!userId) return;
-  getHome(userId).then((data) => setUser(data));
-}, [userId]);
+  getHome(userId,token).then((data) => setUser(data)); 
+}, [loginInfo]);
+const handleChange = (e) => {
+  const { name, value, files } = e.target;
+  //  if (files) {
+  //     const reader = new FileReader();
+  //     reader.onload = (event) => setPreview(event.target.result);
+  //     reader.readAsDataURL(files);
+  //   }
 
-  const handleChange = (e) => {
-    setUser({
-      ...user,
-      [e.target.name]: e.target.value,
-    });
-  };
+  setUser({
+    ...user,
+    [name]: name === "image" ? files[0] : value,
+  });
+};
+
 
   const handleUpdate = () => {
-    console.log("Updated User:", user);
+    console.log("uservalue 123  ",user);
+updateUser(userId,token,user)
     setIsEditing(false);
-  };
+    setIsBlurred(true);
 
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  };
   const handleDelete = () => {
-    console.log("Account deleted");
+deleteUser(userId,token).then((res)=>{
+  console.log("finaly 1",res);
+  if(res){
+    setCount(5);
+    setShowPopup(true);
+  }
+}).catch((err)=>{
+  console.log(err);
+})
     setShowDeleteModal(false);
   };
+  useEffect(() => {
+    if (count === null){
+      return
+    };
 
+    if (count === 1) {
+      const timer = setTimeout(() => {
+        setCount(null);
+        dispatch(removeDatass())
+        // Countdown finished
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+    const timer = setTimeout(() => {
+      setCount((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [count]);
   function removeData(){
 dispatch(removeDatass())
   }
-
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10">
+    <div    style={{
+          filter: isBlurred ? "blur(8px)" : "none",
+          pointerEvents: isBlurred ? "none" : "auto", // clicks block aakum
+          transition: "filter 0.3s ease",
+        }} className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-4xl">
-
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
-            {user?.name} Profile
+          Welcome  {user?.name} 
           </h1>
-
           <p className="mt-2 text-slate-500">
-            Manage your personal information and account settings.
+            Please check you're profile {user?.name}
           </p>
         </div>
-
         {/* Profile Card */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
           {/* Top Profile Section */}
           <div className="bg-slate-900 px-6 py-8 sm:px-10">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -291,6 +330,34 @@ dispatch(removeDatass())
           </div>
         </div>
       )}
+
+      {showPopup && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "black",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+        >
+          {count !== null ? (
+            <h1 style={{ color: "white", fontSize: "100px" }}>
+              {count}
+            </h1>
+          ) : (
+            <div style={{ color: "white", textAlign: "center" }}>
+              <h1>END</h1>
+
+              <button onClick={() => setShowPopup(false)}>
+                Close
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -321,7 +388,6 @@ const Input = ({
   );
 };
 
-
 /* Reusable Information Item */
 const Info = ({ label, value }) => {
   return (
@@ -338,3 +404,10 @@ const Info = ({ label, value }) => {
 };
 
 export default Home;
+
+
+
+
+
+// $argon2id$v=19$m=65536,p=4,t=3$OR38if+snTCU7Uv0tyQyog$nqWIY6nak+2GWLhv4wPqEx3AqS/9W30APmoszQ6xvxw
+// $argon2id$v=19$m=65536,p=4,t=3$OR38if+snTCU7Uv0tyQyog$nqWIY6nak+2GWLhv4wPqEx3AqS/9W30APmoszQ6xvxw

@@ -5,14 +5,10 @@ require('dotenv').config();
 const app = express();
 const routerPage=require('./Router/userRouter')
 app.use(cors());
-app.use(express.json()); 
+app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI ;
-const os=require('os')
-
-console.log(os.networkInterfaces());
-
-mongoose
+mongoose  
   .connect(MONGO_URI)
   .then(() => {
     console.log('Connected to MongoDB');
@@ -23,6 +19,5 @@ mongoose
   .catch((err) => {
     console.error('Failed to connect to MongoDB:', err.message);
   });
-
   app.use('/diginet',routerPage)
 

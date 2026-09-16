@@ -4,8 +4,10 @@ import * as Yup from 'yup';
 import { Link } from 'react-router';
 import { loginData } from './api';
 import { useDispatch } from 'react-redux';
+import { useState } from 'react';
 
 const Login = () => {
+  const [message,setmessage]=useState()
  const dispatch=useDispatch()
   const formik = useFormik({
     initialValues: {
@@ -22,7 +24,11 @@ const Login = () => {
     }),
     onSubmit: (values) => {
       console.log('Login Submitted', values);
-loginData(values,dispatch)
+loginData(values,dispatch).then((data)=>{
+setmessage(data)
+}).catch((err)=>{
+  setmessage(err)
+})
     },
   });
 
@@ -36,6 +42,7 @@ loginData(values,dispatch)
         
         {/* Header */}
         <div className="text-center mb-4">
+               <h2 className="text-lg font-light text-red-400">{message}</h2>
           <h2 className="text-xl font-bold text-blue-900">Welcome Back</h2>
           <p className="text-[11px] text-blue-500 mt-0.5">Please enter your details to sign in</p>
         </div>
