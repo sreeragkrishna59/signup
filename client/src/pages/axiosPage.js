@@ -1,6 +1,8 @@
 import axios from "axios"
 
-let Url="http://localhost:3000/diginet"
+let Url="https://jwt-signup-page-server.onrender.com/diginet"
+// let Url="http://localhost:3000/diginet"
+
 
 let token=JSON.parse(localStorage.getItem('persist:diginet'))&&JSON.parse(JSON.parse(localStorage.getItem('persist:diginet')).loginData)&&JSON.parse(JSON.parse(localStorage.getItem('persist:diginet')).loginData).token
 console.log("finaly troken",token);

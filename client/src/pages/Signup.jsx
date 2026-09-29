@@ -5,9 +5,9 @@ import { Link, useNavigate } from 'react-router';
 import { signupData } from './api';
 
 const Signup = () => {
-
-  const [msg,setMesg]=useState()
-  let navigate=useNavigate()
+  const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const formik = useFormik({
     initialValues: {
@@ -28,42 +28,52 @@ const Signup = () => {
       image: Yup.mixed().required('Image required'),
       password: Yup.string().min(8, 'Min 8 characters').required('Required'),
     }),
-    onSubmit:async (values) => {
-      console.log('Form Submitted', values);
-     let returnValue=await signupData(values)
+    onSubmit: async (values, { setSubmitting }) => {
+      setMsg('');
+      setError('');
 
-     console.log("what is return value ........................",returnValue);
-     
-     if(returnValue.message=="User registered successfully"){
-setMesg(returnValue.message)
-setTimeout(()=>{
-navigate('/')
-},3000)
-     }
+      const result = await signupData(values);
+      console.log('signup result', result);
+
+      if (result.success) {
+        // Signup success -> show message, then go to login page
+        setMsg(result.data?.message || 'User registered successfully');
+        setTimeout(() => {
+          navigate('/'); // login page
+        }, 2000);
+      } else {
+        // Signup failed -> stay on this page and show the error
+        const errMsg =
+          typeof result.error === 'string'
+            ? result.error
+            : result.error?.message || 'Signup failed. Please try again.';
+        setError(errMsg);
+        setSubmitting(false);
+      }
     },
   });
 
   // Reusable compact styling classes
-  const inputClass = "w-full px-2.5 py-1 text-xs text-gray-700 bg-gray-50 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 focus:bg-white transition-colors";
-  const labelClass = "block text-xs font-semibold text-gray-600 mb-0.5";
-  const errorClass = "text-[10px] text-red-500 mt-0.5 leading-none";
+  const inputClass =
+    'w-full px-2.5 py-1 text-xs text-gray-700 bg-gray-50 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 focus:bg-white transition-colors';
+  const labelClass = 'block text-xs font-semibold text-gray-600 mb-0.5';
+  const errorClass = 'text-[10px] text-red-500 mt-0.5 leading-none';
 
   return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-3 font-sans">
-      
       <div className="w-full max-w-sm bg-white rounded-lg shadow-md p-5 border border-blue-100">
-        
         {/* Compact Header */}
         <div className="text-center mb-3">
           <h2 className="text-xl font-bold text-blue-900">Create Account</h2>
-          <h1 className="text-xl font-bold text-green-400">{msg}</h1>
+
+          {msg && <p className="text-sm font-semibold text-green-500 mt-1">{msg}</p>}
+          {error && <p className="text-sm font-semibold text-red-500 mt-1">{error}</p>}
+
           <p className="text-[11px] text-blue-500 mt-0.5">Quick & simple registration</p>
         </div>
 
         <form onSubmit={formik.handleSubmit} className="space-y-2">
-          
           <div className="grid grid-cols-2 gap-2">
-            
             {/* Name */}
             <div className="col-span-2">
               <label className={labelClass}>Full Name</label>
@@ -174,7 +184,7 @@ navigate('/')
                 name="image"
                 accept="image/*"
                 onChange={(event) => {
-                  formik.setFieldValue("image", event.currentTarget.files[0]);
+                  formik.setFieldValue('image', event.currentTarget.files[0]);
                 }}
                 onBlur={formik.handleBlur}
                 className="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer"
@@ -183,25 +193,26 @@ navigate('/')
                 <p className={errorClass}>{formik.errors.image}</p>
               )}
             </div>
-
           </div>
 
           {/* Submit Button */}
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+              disabled={formik.isSubmitting}
+              className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-semibold rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
             >
-              Sign Up
+              {formik.isSubmitting ? 'Signing up...' : 'Sign Up'}
             </button>
           </div>
-          
         </form>
-               <Link to={'/'} className="text-[11px] font-semibold text-blue-600 hover:underline">
-              I have a already an account?
-            </Link>
+
+        <Link to={'/'} className="text-[11px] font-semibold text-blue-600 hover:underline">
+          I already have an account?
+        </Link>
       </div>
     </div>
   );
 };
+
 export default Signup;

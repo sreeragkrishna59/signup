@@ -2,77 +2,101 @@ import { useEffect, useState } from "react";
 import { deleteUser, getHome, updateUser } from "./api";
 import { useDispatch, useSelector } from "react-redux";
 import { removeDatass } from "../Redux/userSlice";
+
 const Home = () => {
-  const dispatch=useDispatch()
-    let loginInfo=useSelector((state)=>state.loginInfo.loginData)
-  console.log("first check .............",loginInfo);
-let userId=loginInfo?.userId
-let token=loginInfo?.token
+  const dispatch = useDispatch();
+  let loginInfo = useSelector((state) => state.loginInfo.loginData);
+  console.log("first check .............", loginInfo);
+  let userId = loginInfo?.userId;
+  let token = loginInfo?.token;
+
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-const [user,setUser]=useState({
-  name:undefined,
-  age:undefined,
-  email:undefined,
-  mobile:undefined,
-address:undefined,
-image:undefined
-})
-//count the delete section
+
+  const [user, setUser] = useState({
+    name: undefined,
+    age: undefined,
+    email: undefined,
+    mobile: undefined,
+    address: undefined,
+    image: undefined,
+  });
+
+  // Local preview for a newly selected (not-yet-saved) image file
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Delete countdown section
   const [count, setCount] = useState(null);
   const [isBlurred, setIsBlurred] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-useEffect(() => {
-  if (!userId) return;
-  getHome(userId,token).then((data) => setUser(data)); 
-}, [loginInfo]);
-const handleChange = (e) => {
-  const { name, value, files } = e.target;
-  //  if (files) {
-  //     const reader = new FileReader();
-  //     reader.onload = (event) => setPreview(event.target.result);
-  //     reader.readAsDataURL(files);
-  //   }
 
-  setUser({
-    ...user,
-    [name]: name === "image" ? files[0] : value,
-  });
-};
-
-
-  const handleUpdate = () => {
-    console.log("uservalue 123  ",user);
-updateUser(userId,token,user)
-    setIsEditing(false);
-    setIsBlurred(true);
-
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
-  };
-  const handleDelete = () => {
-deleteUser(userId,token).then((res)=>{
-  console.log("finaly 1",res);
-  if(res){
-    setCount(5);
-    setShowPopup(true);
-  }
-}).catch((err)=>{
-  console.log(err);
-})
-    setShowDeleteModal(false);
-  };
   useEffect(() => {
-    if (count === null){
-      return
-    };
+    if (!userId) return;
+    getHome(userId, token).then((result) => {
+      if (result.success) {
+        setUser(result.data);
+      } else {
+        console.error("Failed to load profile:", result.error);
+      }
+    });
+  }, [loginInfo]);
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+
+    if (name === "image" && files?.[0]) {
+      setPreviewUrl(URL.createObjectURL(files[0]));
+      setUser({ ...user, image: files[0] });
+      return;
+    }
+
+    setUser({
+      ...user,
+      [name]: value,
+    });
+  };
+
+  const handleUpdate = async () => {
+    console.log("uservalue 123  ", user);
+    setIsSaving(true);
+    const result = await updateUser(userId, token, user);
+    setIsSaving(false);
+
+    if (result.success) {
+      setIsEditing(false);
+      setIsBlurred(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 3500);
+    } else {
+      alert(result.error?.message || "Failed to update profile. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    setShowDeleteModal(false);
+    const result = await deleteUser(userId, token);
+
+    console.log("finaly 1", result);
+
+    if (result.success) {
+      setCount(5);
+      setShowPopup(true);
+    } else {
+      alert(result.error?.message || "Failed to delete account. Please try again.");
+    }
+  };
+
+  useEffect(() => {
+    if (count === null) {
+      return;
+    }
 
     if (count === 1) {
       const timer = setTimeout(() => {
         setCount(null);
-        dispatch(removeDatass())
-        // Countdown finished
+        dispatch(removeDatass());
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -81,36 +105,40 @@ deleteUser(userId,token).then((res)=>{
     }, 1000);
     return () => clearTimeout(timer);
   }, [count]);
-  function removeData(){
-dispatch(removeDatass())
+
+  function removeData() {
+    dispatch(removeDatass());
   }
+
   return (
-    <div    style={{
-          filter: isBlurred ? "blur(8px)" : "none",
-          pointerEvents: isBlurred ? "none" : "auto", // clicks block aakum
-          transition: "filter 0.3s ease",
-        }} className="min-h-screen bg-slate-50 px-4 py-10">
+    <div
+      style={{
+        filter: isBlurred ? "blur(8px)" : "none",
+        pointerEvents: isBlurred ? "none" : "auto",
+        transition: "filter 0.3s ease",
+      }}
+      className="min-h-screen bg-slate-50 px-4 py-10"
+    >
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
-          Welcome  {user?.name} 
+            Welcome {user?.name}
           </h1>
           <p className="mt-2 text-slate-500">
             Please check you're profile {user?.name}
           </p>
         </div>
+
         {/* Profile Card */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {/* Top Profile Section */}
           <div className="bg-slate-900 px-6 py-8 sm:px-10">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-
               <div className="flex items-center gap-5">
-
                 {/* Profile Image */}
                 <img
-                  src={user?.image}
+                  src={previewUrl || user?.image}
                   alt={user?.name}
                   className="h-24 w-24 rounded-full border-4 border-white/20 object-cover"
                 />
@@ -120,9 +148,7 @@ dispatch(removeDatass())
                     {user?.name}
                   </h2>
 
-                  <p className="mt-1 text-slate-300">
-                    {user?.email}
-                  </p>
+                  <p className="mt-1 text-slate-300">{user?.email}</p>
 
                   <p className="mt-2 text-sm text-slate-400">
                     {user?.age} years · {user?.mobile}
@@ -132,7 +158,6 @@ dispatch(removeDatass())
 
               {/* Buttons */}
               <div className="flex gap-3">
-
                 <button
                   onClick={() => setIsEditing(!isEditing)}
                   className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
@@ -152,14 +177,12 @@ dispatch(removeDatass())
                 >
                   Logout Account
                 </button>
-
               </div>
             </div>
           </div>
 
           {/* Information Section */}
           <div className="px-6 py-8 sm:px-10">
-
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-slate-900">
                 Personal Information
@@ -171,10 +194,8 @@ dispatch(removeDatass())
             </div>
 
             {isEditing ? (
-
               /* Edit Form */
               <div className="grid gap-5 sm:grid-cols-2">
-
                 <Input
                   label="Full Name"
                   name="name"
@@ -226,67 +247,49 @@ dispatch(removeDatass())
 
                   <input
                     name="image"
-                  type="file"
+                    type="file"
+                    accept="image/*"
                     onChange={handleChange}
                     className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
                 </div>
 
                 <div className="flex gap-3 sm:col-span-2">
-
                   <button
                     onClick={handleUpdate}
-                    className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    disabled={isSaving}
+                    className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:bg-slate-400"
                   >
-                    Save Changes
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
 
                   <button
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      setIsEditing(false);
+                      setPreviewUrl(null);
+                    }}
                     className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
                     Cancel
                   </button>
-
                 </div>
-
               </div>
-
             ) : (
-
               /* Profile Information */
               <div className="grid gap-6 sm:grid-cols-2">
+                <Info label="Full Name" value={user?.name} />
 
-                <Info
-                  label="Full Name"
-                  value={user?.name}
-                />
+                <Info label="Email" value={user?.email} />
 
-                <Info
-                  label="Email"
-                  value={user?.email}
-                />
+                <Info label="Age" value={`${user?.age} years`} />
 
-                <Info
-                  label="Age"
-                  value={`${user?.age} years`}
-                />
-
-                <Info
-                  label="Mobile"
-                  value={user?.mobile}
-                />
+                <Info label="Mobile" value={user?.mobile} />
 
                 <div className="sm:col-span-2">
-                  <Info
-                    label="Address"
-                    value={user?.address}
-                  />
+                  <Info label="Address" value={user?.address} />
                 </div>
-
               </div>
             )}
-
           </div>
         </div>
       </div>
@@ -294,9 +297,7 @@ dispatch(removeDatass())
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-
             <div className="mb-5">
               <h2 className="text-xl font-bold text-slate-900">
                 Delete Account?
@@ -309,7 +310,6 @@ dispatch(removeDatass())
             </div>
 
             <div className="flex justify-end gap-3">
-
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -323,10 +323,7 @@ dispatch(removeDatass())
               >
                 Delete Account
               </button>
-      
-
             </div>
-
           </div>
         </div>
       )}
@@ -344,16 +341,12 @@ dispatch(removeDatass())
           }}
         >
           {count !== null ? (
-            <h1 style={{ color: "white", fontSize: "100px" }}>
-              {count}
-            </h1>
+            <h1 style={{ color: "white", fontSize: "100px" }}>{count}</h1>
           ) : (
             <div style={{ color: "white", textAlign: "center" }}>
               <h1>END</h1>
 
-              <button onClick={() => setShowPopup(false)}>
-                Close
-              </button>
+              <button onClick={() => setShowPopup(false)}>Close</button>
             </div>
           )}
         </div>
@@ -362,15 +355,8 @@ dispatch(removeDatass())
   );
 };
 
-
 /* Reusable Input */
-const Input = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-}) => {
+const Input = ({ label, name, value, onChange, type = "text" }) => {
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -380,7 +366,7 @@ const Input = ({
       <input
         type={type}
         name={name}
-        value={value}
+        value={value ?? ""}
         onChange={onChange}
         className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
       />
@@ -396,18 +382,9 @@ const Info = ({ label, value }) => {
         {label}
       </p>
 
-      <p className="mt-1 text-sm font-medium text-slate-800">
-        {value}
-      </p>
+      <p className="mt-1 text-sm font-medium text-slate-800">{value}</p>
     </div>
   );
 };
 
 export default Home;
-
-
-
-
-
-// $argon2id$v=19$m=65536,p=4,t=3$OR38if+snTCU7Uv0tyQyog$nqWIY6nak+2GWLhv4wPqEx3AqS/9W30APmoszQ6xvxw
-// $argon2id$v=19$m=65536,p=4,t=3$OR38if+snTCU7Uv0tyQyog$nqWIY6nak+2GWLhv4wPqEx3AqS/9W30APmoszQ6xvxw

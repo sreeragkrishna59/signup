@@ -4,12 +4,19 @@ const cors = require('cors');
 require('dotenv').config();
 const app = express();
 const routerPage=require('./Router/userRouter')
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://sg-59.netlify.app',
+    'http://localhost:5173'
+  ],
+  allowedHeaders: ['Content-Type', 'token'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+}));
 app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI ;
 mongoose  
-  .connect(MONGO_URI)
+  .connect(MONGO_URI)  
   .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
